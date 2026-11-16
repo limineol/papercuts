@@ -38,8 +38,15 @@ impl Store {
         let papercut = build(last_id + 1);
         let mut line = serde_json::to_string(&papercut)?;
         line.push('\n');
-        file.write_all(line.as_bytes())?;
-        file.sync_data()?;
+        let len = file.metadata()?.len();
+        if let Err(err) = file
+            .write_all(line.as_bytes())
+            .and_then(|()| file.sync_data())
+        {
+            // Drop a partly written line (e.g. on a full disk) so the store stays readable.
+            let _ = file.set_len(len);
+            return Err(err.into());
+        }
         Ok(papercut)
     }
 

@@ -14,11 +14,12 @@ pub fn current() -> Result<String> {
     bail!("not inside a git repository; pass --repo <owner/name>")
 }
 
-/// Matches a stored repo against what a user typed: the full `owner/name`, or just `name`.
+/// Matches a stored repo against what a user typed: the full identity, or just the
+/// repository name when no owner is given.
 pub fn matches(stored: &str, wanted: &str) -> bool {
     let stored = stored.to_lowercase();
     let wanted = wanted.to_lowercase();
-    stored == wanted || stored.ends_with(&format!("/{wanted}"))
+    stored == wanted || (!wanted.contains('/') && stored.rsplit('/').next() == Some(&wanted))
 }
 
 fn git(args: &[&str]) -> Option<String> {
@@ -69,5 +70,7 @@ mod tests {
         assert!(matches("limineol/papercuts", "Papercuts"));
         assert!(!matches("limineol/papercuts", "cuts"));
         assert!(!matches("limineol/papercuts", "limineol"));
+        assert!(matches("archive/acme/widgets", "widgets"));
+        assert!(!matches("archive/acme/widgets", "acme/widgets"));
     }
 }
