@@ -168,17 +168,22 @@ fn add(store: &Store, args: AddArgs, out: &mut impl Write) -> Result<()> {
 }
 
 fn list(store: &Store, args: ListArgs, out: &mut impl Write) -> Result<()> {
-    let repo = match args.repo {
-        Some(repo) => Some(repo),
-        None if args.here => Some(repo::current()?),
-        None => None,
+    let here = if args.here {
+        Some(repo::current()?)
+    } else {
+        None
     };
     let mut papercuts: Vec<Papercut> = store
         .load()?
         .into_iter()
         .filter(|p| {
-            repo.as_ref()
-                .is_none_or(|wanted| p.repo.as_ref().is_some_and(|r| repo::matches(r, wanted)))
+            let stored = p.repo.as_deref();
+            args.repo
+                .as_ref()
+                .is_none_or(|wanted| stored.is_some_and(|r| repo::matches(r, wanted)))
+                && here
+                    .as_ref()
+                    .is_none_or(|current| stored.is_some_and(|r| r.eq_ignore_ascii_case(current)))
                 && args.scope.is_none_or(|scope| p.scope == scope)
                 && args.min_severity.is_none_or(|min| p.severity >= min)
                 && args.cause.is_none_or(|cause| p.cause == cause)

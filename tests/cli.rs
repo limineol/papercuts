@@ -161,6 +161,10 @@ fn codebase_papercuts_default_to_the_current_repository() {
     assert_eq!(sandbox.ids(&["--repo", "ACME/Widgets"]), [1]);
     assert_eq!(sandbox.ids(&["--repo", "gadgets"]), Vec::<u64>::new());
 
+    git(&["remote", "set-url", "origin", "git@selfhosted:widgets.git"]);
+    let here = sandbox.json(&repo, &["list", "--json", "--here"]);
+    assert_eq!(here, json!([]), "--here matched another owner's widgets");
+
     let mut args = vec!["add", "Outside a repo", "--scope", "codebase"];
     args.extend_from_slice(&base);
     let outside = sandbox.run(&sandbox.work(), &args);
